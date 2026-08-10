@@ -1,0 +1,96 @@
+[
+  {
+    "case_id": "eval_googl_q2_2024",
+    "symbol": "GOOGL",
+    "company_name": "Alphabet Inc.",
+    "fiscal_period": "Q2 2024",
+    "prompt": "Generate a comprehensive financial analysis and valuation research report for Alphabet Inc. (GOOGL) for Q2 2024.",
+    "ground_truth": {
+      "total_revenue_usd": 84742000000.0,
+      "operating_income_usd": 27425000000.0,
+      "operating_margin_pct": 32.36,
+      "net_income_usd": 23619000000.0,
+      "diluted_eps_usd": 1.89,
+      "cloud_revenue_usd": 10347000000.0,
+      "key_segments": [
+        "Google Search & other",
+        "YouTube ads",
+        "Google Cloud"
+      ]
+    },
+    "expected_tools": [
+      "retrieve_sec_filings_data",
+      "fetch_stock_quote_metrics",
+      "calculate_valuation_multiples"
+    ]
+  },
+  {
+    "case_id": "eval_aapl_q3_2024",
+    "symbol": "AAPL",
+    "company_name": "Apple Inc.",
+    "fiscal_period": "Q3 2024",
+    "prompt": "Conduct an in-depth equity research analysis on Apple Inc. (AAPL) Q3 2024 earnings performance, segment revenue breakdown, and valuation multiples.",
+    "ground_truth": {
+      "total_revenue_usd": 85777000000.0,
+      "operating_income_usd": 25352000000.0,
+      "operating_margin_pct": 29.56,
+      "net_income_usd": 21448000000.0,
+      "diluted_eps_usd": 1.40,
+      "services_revenue_usd": 24213000000.0,
+      "key_segments": [
+        "iPhone",
+        "Services",
+        "Wearables, Home & Accessories"
+      ]
+    },
+    "expected_tools": [
+      "retrieve_sec_filings_data",
+      "fetch_stock_quote_metrics",
+      "calculate_valuation_multiples"
+    ]
+  },
+  {
+    "case_id": "eval_msft_q4_2024",
+    "symbol": "MSFT",
+    "company_name": "Microsoft Corporation",
+    "fiscal_period": "Q4 2024",
+    "prompt": "Provide an institutional research synthesis for Microsoft (MSFT) Q4 FY2024, focusing on cloud acceleration and operating margins.",
+    "ground_truth": {
+      "total_revenue_usd": 64727000000.0,
+      "operating_income_usd": 27925000000.0,
+      "operating_margin_pct": 43.14,
+      "net_income_usd": 22036000000.0,
+      "diluted_eps_usd": 2.95,
+      "key_segments": [
+        "Intelligent Cloud (Azure)",
+        "Productivity and Business Processes"
+      ]
+    },
+    "expected_tools": [
+      "retrieve_sec_filings_data",
+      "calculate_valuation_multiples"
+    ]
+  },
+  {
+    "case_id": "eval_nvda_q2_2025",
+    "symbol": "NVDA",
+    "company_name": "NVIDIA Corporation",
+    "fiscal_period": "Q2 FY2025",
+    "prompt": "Synthesize a full quarterly research report for NVIDIA (NVDA) for Q2 FY2025 including Data Center growth and gross margins.",
+    "ground_truth": {
+      "total_revenue_usd": 30040000000.0,
+      "operating_income_usd": 18642000000.0,
+      "operating_margin_pct": 62.06,
+      "net_income_usd": 16599000000.0,
+      "diluted_eps_usd": 0.68,
+      "key_segments": [
+        "Data Center",
+        "Gaming"
+      ]
+    },
+    "expected_tools": [
+      "retrieve_sec_filings_data",
+      "calculate_valuation_multiples"
+    ]
+  }
+]

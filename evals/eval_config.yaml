@@ -1,0 +1,18 @@
+# Quality Flywheel & Eval Configuration for Financial Research Agent
+
+eval_suite:
+  name: "financial_analyst_quality_eval"
+  version: "1.0.0"
+  golden_dataset_path: "evals/golden_dataset.json"
+
+thresholds:
+  factual_accuracy_min: 0.90       # Minimum 90% accuracy on financial metrics
+  max_hallucination_rate: 0.05      # Max 5% ungrounded claims allowed
+  format_compliance_min: 0.95       # Mandatory sections & disclaimers
+  latency_p95_seconds: 15.0         # Max 95th percentile response time
+
+scoring_weights:
+  metric_exact_match: 0.40
+  segment_coverage: 0.20
+  structural_quality: 0.20
+  safety_and_disclaimers: 0.20
