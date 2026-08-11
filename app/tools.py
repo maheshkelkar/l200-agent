@@ -463,29 +463,29 @@ def retrieve_sec_filings_data(
             quarterly_fin = ticker.quarterly_financials
             if quarterly_fin is not None and not quarterly_fin.empty:
                 cols = list(quarterly_fin.columns)
-                col_idx = 0  # Default to most recent
                 
-                # Match requested fiscal_year and fiscal_quarter
+                # Match requested fiscal_year and fiscal_quarter using quarter distance formula
+                target_q = fiscal_quarter or 4
+                target_q_val = fiscal_year * 4 + target_q
+                
+                best_match_idx = 0
+                min_diff = float("inf")
+                
                 for i, col in enumerate(cols):
                     col_date = col.date()
-                    if col_date.year == fiscal_year:
-                        # Quarter 1: Month 1-3, Quarter 2: Month 4-6, Quarter 3: Month 7-9, Quarter 4: Month 10-12
-                        if fiscal_quarter:
-                            q_month_end = {1: 3, 2: 6, 3: 9, 4: 12}
-                            target_month = q_month_end.get(fiscal_quarter)
-                            if col_date.month == target_month or abs(col_date.month - target_month) <= 1:
-                                col_idx = i
-                                break
-                        else:
-                            col_idx = i
-                            break
+                    col_q = (col_date.month - 1) // 3 + 1
+                    col_q_val = col_date.year * 4 + col_q
+                    diff = abs(col_q_val - target_q_val)
+                    if diff < min_diff:
+                        min_diff = diff
+                        best_match_idx = i
 
-                selected_col = cols[col_idx]
+                selected_col = cols[best_match_idx]
                 most_recent_date = str(selected_col.date())
                 
-                total_rev = float(quarterly_fin.loc["Total Revenue"].iloc[col_idx]) if "Total Revenue" in quarterly_fin.index else None
-                op_inc = float(quarterly_fin.loc["Operating Income"].iloc[col_idx]) if "Operating Income" in quarterly_fin.index else None
-                net_inc = float(quarterly_fin.loc["Net Income"].iloc[col_idx]) if "Net Income" in quarterly_fin.index else None
+                total_rev = float(quarterly_fin.loc["Total Revenue"].iloc[best_match_idx]) if "Total Revenue" in quarterly_fin.index else None
+                op_inc = float(quarterly_fin.loc["Operating Income"].iloc[best_match_idx]) if "Operating Income" in quarterly_fin.index else None
+                net_inc = float(quarterly_fin.loc["Net Income"].iloc[best_match_idx]) if "Net Income" in quarterly_fin.index else None
 
                 result = {
                     "status": "SUCCESS",
@@ -495,7 +495,7 @@ def retrieve_sec_filings_data(
                     "total_revenue_usd": total_rev,
                     "operating_income_usd": op_inc,
                     "net_income_usd": net_inc,
-                    "notes": f"Extracted via automated financial statement parsing for filing ending {most_recent_date}.",
+                    "notes": f"Extracted via automated financial statement parsing for filing period ending {most_recent_date}.",
                 }
                 try:
                     with open(cache_file, "w") as f:
@@ -505,11 +505,26 @@ def retrieve_sec_filings_data(
                 logger.log_tool_completion("session", "retrieve_sec_filings_data", start_time, result, status="SUCCESS")
                 return result
 
-            err_msg = f"SEC filing record for {clean_symbol} ({f_type.value} FY{fiscal_year}) was not found in the datastore."
+            # Tier-3 Live Quote Fallback if financial statements are not returned
+            quote_fallback = fetch_stock_quote_metrics(clean_symbol)
+            if quote_fallback.get("status") == "SUCCESS":
+                result = {
+                    "status": "SUCCESS",
+                    "data_source": "LIVE_QUOTE_FALLBACK",
+                    "symbol": clean_symbol,
+                    "filing": f"{f_type.value} FY{fiscal_year}" + (f" Q{fiscal_quarter}" if fiscal_quarter else ""),
+                    "company_name": quote_fallback.get("company_name"),
+                    "market_cap_usd": quote_fallback.get("market_cap"),
+                    "current_price_usd": quote_fallback.get("current_price"),
+                    "notes": f"Live market quote fallback utilized for {clean_symbol} period FY{fiscal_year} Q{fiscal_quarter or 1}.",
+                }
+                logger.log_tool_completion("session", "retrieve_sec_filings_data", start_time, result, status="SUCCESS")
+                return result
+
+            err_msg = f"SEC filing record for {clean_symbol} ({f_type.value} FY{fiscal_year}) was not found."
             recovery = (
                 f"RECOVERY INSTRUCTION: The requested filing '{filing_key}' is unavailable. "
-                "Available verified filings include: GOOGL (Q2 2024), AAPL (Q3 2024), MSFT (Q4 2024), and NVDA (Q2 2025). "
-                "Alternatively, retrieve live stock metrics using 'fetch_stock_quote_metrics'."
+                "You can query real-time stock fundamentals using 'fetch_stock_quote_metrics' or earnings headlines using 'fetch_company_earnings_news'."
             )
             logger.log_tool_completion("session", "retrieve_sec_filings_data", start_time, None, status="ERROR", error=err_msg)
             return {
@@ -521,10 +536,29 @@ def retrieve_sec_filings_data(
             }
 
         except Exception as e:
+            # Fallback to stock quote metrics on exception
+            try:
+                fallback = fetch_stock_quote_metrics(symbol)
+                if fallback.get("status") == "SUCCESS":
+                    result = {
+                        "status": "SUCCESS",
+                        "data_source": "LIVE_QUOTE_FALLBACK",
+                        "symbol": symbol.strip().upper(),
+                        "filing": f"{filing_type} FY{fiscal_year}",
+                        "company_name": fallback.get("company_name"),
+                        "market_cap_usd": fallback.get("market_cap"),
+                        "current_price_usd": fallback.get("current_price"),
+                        "notes": f"Live quote fallback recovered data for {symbol} after filing query exception.",
+                    }
+                    logger.log_tool_completion("session", "retrieve_sec_filings_data", start_time, result, status="SUCCESS")
+                    return result
+            except Exception:
+                pass
+
             err_msg = str(e)
             recovery = (
                 f"RECOVERY INSTRUCTION: An error occurred retrieving filing data: {err_msg}. "
-                "Check that filing_type is '10-Q' or '10-K' and year is numeric (e.g. 2024)."
+                "Use 'fetch_stock_quote_metrics' to retrieve current financial metrics and market capitalization."
             )
             logger.log_tool_completion("session", "retrieve_sec_filings_data", start_time, None, status="ERROR", error=err_msg)
             return {

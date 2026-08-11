@@ -119,3 +119,20 @@ def test_retrieve_sec_filings_cache():
     assert res2["status"] == "SUCCESS"
     assert res2.get("data_source") == "LOCAL_DISK_CACHE"
 
+
+def test_retrieve_sec_filings_data_fallback_recovery(monkeypatch):
+    """Verify live quote fallback when dynamic statement parsing encounters exceptions."""
+    import yfinance as yf
+    
+    def mock_ticker_error(*args, **kwargs):
+        raise RuntimeError("Simulated network API timeout")
+        
+    monkeypatch.setattr(yf, "Ticker", mock_ticker_error)
+    
+    # Should catch exception and gracefully recover via live quote fallback
+    res = retrieve_sec_filings_data(symbol="GOOGL", filing_type="10-Q", fiscal_year=2028, fiscal_quarter=1)
+    assert res["status"] == "SUCCESS"
+    assert res.get("data_source") == "LIVE_QUOTE_FALLBACK"
+    assert "notes" in res
+
+
