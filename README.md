@@ -1,5 +1,5 @@
 # 📈 Financial Research & Report Generator
-### L200 Assessment: "AI in 5 Days" Multi-Agent Production Architecture
+### Multi-Agent Production Architecture for Institutional Financial Intelligence
 
 [![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-blue)](https://www.python.org/)
 [![ADK](https://img.shields.io/badge/Google%20ADK-2.6.3-green)](https://adk.dev/)
@@ -14,65 +14,65 @@
 
 The **Financial Research & Report Generator** is an institutional-grade multi-agent equity research platform designed to automate the discovery, extraction, valuation modeling, and synthesis of corporate financial filings (SEC Form 10-Q and 10-K) and market intelligence.
 
-Built using the **Google Agent Development Kit (ADK)**, this system demonstrates production design patterns across five core evaluation categories.
+Built using the **Google Agent Development Kit (ADK)**, this system demonstrates production design patterns across five core architectural capabilities.
 
 ```mermaid
 flowchart TD
     subgraph Client & Ingestion Layer
-        U[User Financial Query<br/>e.g., 'Analyze Alphabet Q2 2024'] --> COORD[Coordinator Agent<br/><b>Gemini 2.5 Pro</b>]
+        U["User Financial Query<br/>e.g., 'Analyze Alphabet Q2 2024'"] --> COORD["Coordinator Agent<br/><b>Gemini 2.5 Pro</b>"]
     end
 
     subgraph Security & Observability Layer
-        GUARD[Financial Safety Guardrail<br/>Prompt Injection & Compliance] --> COORD
-        OTEL[OpenTelemetry + Cloud Trace] -.-> COORD
-        LOG[Structured JSON Logger] -.-> COORD
-        REDACT[Active PII & Secret Scrubber] -.-> LOG
+        GUARD["Financial Safety Guardrail<br/>Prompt Injection & Compliance"] --> COORD
+        OTEL["OpenTelemetry + Cloud Trace"] -.-> COORD
+        LOG["Structured JSON Logger"] -.-> COORD
+        REDACT["Active PII & Secret Scrubber"] -.-> LOG
     end
 
     subgraph Memory & Context Layer
-        VAIS[(Vertex AI Search / Datastore<br/>Historical Filings & Session State)]
-        COMPACT[Sliding-Window History Compactor]
+        VAIS[("Vertex AI Search / Datastore<br/>Historical Filings & Session State")]
+        COMPACT["Sliding-Window History Compactor"]
         VAIS <--> COMPACT
         COMPACT <--> COORD
     end
 
     subgraph Multi-Agent Execution Pipeline
-        COORD -->|Delegates Extraction| DGA[Data Gathering Agent<br/><b>Gemini 2.5 Flash</b>]
+        COORD -->|"Delegates Extraction"| DGA["Data Gathering Agent<br/><b>Gemini 2.5 Flash</b>"]
         
         subgraph Tool & Interface Layer
-            DGA --> T1[fetch_stock_quote_metrics]
-            DGA --> T2[retrieve_sec_filings_data]
-            DGA --> T3[fetch_company_earnings_news]
-            SM[GCP Secret Manager<br/>Dynamic API Key Injection] -.-> T1 & T2 & T3
+            DGA --> T1["fetch_stock_quote_metrics"]
+            DGA --> T2["retrieve_sec_filings_data"]
+            DGA --> T3["fetch_company_earnings_news"]
+            SM["GCP Secret Manager<br/>Dynamic API Key Injection"] -.-> T1 & T2 & T3
         end
         
-        T1 & T2 & T3 -->|Structured Schemas + Guided Recovery| DGA
-        DGA -->|Validated Filings & Quotes| COORD
-        COORD -->|Delegates Valuation & Synthesis| ANA[Financial Analyst Agent<br/><b>Gemini 2.5 Pro</b>]
-        ANA --> T4[calculate_valuation_multiples]
+        T1 & T2 & T3 -->|"Structured Schemas + Guided Recovery"| DGA
+        DGA -->|"Validated Filings & Quotes"| COORD
+        COORD -->|"Delegates Valuation & Synthesis"| ANA["Financial Analyst Agent<br/><b>Gemini 2.5 Pro</b>"]
+        ANA --> T4["calculate_valuation_multiples"]
         T4 --> ANA
-        ANA -->|Synthesized Research Report| HITL{Human-in-the-Loop<br/>Approval Gate}
-        HITL -->|Approved| PUB[Final Institutional Research Report]
-        HITL -->|Feedback / Revision| ANA
+        ANA -->|"Synthesized Research Report"| HITL{"Human-in-the-Loop<br/>Approval Gate"}
+        HITL -->|"Approved"| PUB["Final Institutional Research Report"]
+        HITL -->|"Feedback / Revision"| ANA
     end
 
     subgraph Automated Evaluation Harness
-        GOLDEN[(Golden Dataset: Verified SEC 10-Q Reports)] --> EVAL[LLM-as-a-Judge Eval Harness]
+        GOLDEN[("Golden Dataset: Verified SEC 10-Q Reports")] --> EVAL["LLM-as-a-Judge Eval Harness"]
         PUB -.-> EVAL
     end
 ```
 
 ---
 
-## 🎯 Grading Rubric Alignment (95 / 95 Points)
+## 🎯 Architectural Capabilities Matrix
 
-| Category | Points | Implementation Details | Key Files |
-| :--- | :---: | :--- | :--- |
-| **1. Tool & Interface Design** | **20 / 20** | • Comprehensive docstrings with clear parameter definitions<br/>• Highly specific tool naming<br/>• Explicit **Pydantic v2** JSON schemas for inputs & outputs<br/>• Guided error handling returning actionable recovery hints to the LLM | [`app/tools.py`](file:///usr/local/google/home/maheshkelkar/workspace/l200-agent/app/tools.py)<br/>[`tests/test_tools.py`](file:///usr/local/google/home/maheshkelkar/workspace/l200-agent/tests/test_tools.py) |
-| **2. Context & Memory** | **20 / 20** | • Multi-part Constitutional System Prompt (persona, GAAP rules, anti-hallucination)<br/>• Sliding-window history compaction managing context bloat<br/>• Persistent session state & historical filings via **Vertex AI Search**<br/>• Asynchronous non-blocking memory persistence | [`app/constitution.py`](file:///usr/local/google/home/maheshkelkar/workspace/l200-agent/app/constitution.py)<br/>[`app/memory/compactor.py`](file:///usr/local/google/home/maheshkelkar/workspace/l200-agent/app/memory/compactor.py)<br/>[`app/memory/vertex_store.py`](file:///usr/local/google/home/maheshkelkar/workspace/l200-agent/app/memory/vertex_store.py) |
-| **3. Orchestration & Logic** | **20 / 20** | • **Coordinator Multi-Agent Pattern** decomposing research workflows<br/>• **Strategic Model Routing**: Gemini 2.5 Flash for high-speed tool calling + Gemini 2.5 Pro for deep financial synthesis<br/>• Security guardrails protecting against prompt injection<br/>• **Human-in-the-Loop (HITL)** approval checkpoints for report publishing | [`app/agent.py`](file:///usr/local/google/home/maheshkelkar/workspace/l200-agent/app/agent.py)<br/>[`app/guardrails/safety_plugin.py`](file:///usr/local/google/home/maheshkelkar/workspace/l200-agent/app/guardrails/safety_plugin.py)<br/>[`app/guardrails/hitl.py`](file:///usr/local/google/home/maheshkelkar/workspace/l200-agent/app/guardrails/hitl.py) |
-| **4. Observability & Tracing** | **20 / 20** | • Structured JSON logging emitting standard event schemas, tool latency, and outcomes<br/>• Distributed tracing via **OpenTelemetry** with **Google Cloud Trace** exporter<br/>• Active regex-based PII & API credential scrubber | [`app/observability/logger.py`](file:///usr/local/google/home/maheshkelkar/workspace/l200-agent/app/observability/logger.py)<br/>[`app/observability/tracing.py`](file:///usr/local/google/home/maheshkelkar/workspace/l200-agent/app/observability/tracing.py)<br/>[`app/observability/redaction.py`](file:///usr/local/google/home/maheshkelkar/workspace/l200-agent/app/observability/redaction.py) |
-| **5. Infrastructure & CI/CD** | **15 / 15** | • Automated test harness with **Golden Dataset** regression suite<br/>• Complete **Terraform** IaC provisioning GCP resources (`l200-agent-project`)<br/>• **Google Cloud Secret Manager** dynamic secret injection (zero hardcoding) | [`evals/eval_harness.py`](file:///usr/local/google/home/maheshkelkar/workspace/l200-agent/evals/eval_harness.py)<br/>[`infra/terraform/`](file:///usr/local/google/home/maheshkelkar/workspace/l200-agent/infra/terraform/)<br/>[`app/config.py`](file:///usr/local/google/home/maheshkelkar/workspace/l200-agent/app/config.py) |
+| Architectural Capability | Implementation Details | Key Files |
+| :--- | :--- | :--- |
+| **1. Tool & Interface Design** | • Comprehensive docstrings with clear parameter definitions<br/>• Highly specific tool naming<br/>• Explicit **Pydantic v2** JSON schemas for inputs & outputs<br/>• Guided error handling returning actionable recovery hints to the LLM | [`app/tools.py`](app/tools.py)<br/>[`tests/test_tools.py`](tests/test_tools.py) |
+| **2. Context & Memory** | • Multi-part Constitutional System Prompt (persona, GAAP rules, anti-hallucination)<br/>• Sliding-window history compaction managing context bloat<br/>• Persistent session state & historical filings via **Vertex AI Search**<br/>• Asynchronous non-blocking memory persistence | [`app/constitution.py`](app/constitution.py)<br/>[`app/memory/compactor.py`](app/memory/compactor.py)<br/>[`app/memory/vertex_store.py`](app/memory/vertex_store.py) |
+| **3. Orchestration & Logic** | • **Coordinator Multi-Agent Pattern** decomposing research workflows<br/>• **Strategic Model Routing**: Gemini 2.5 Flash for high-speed tool calling + Gemini 2.5 Pro for deep financial synthesis<br/>• Security guardrails protecting against prompt injection<br/>• **Human-in-the-Loop (HITL)** approval checkpoints for report publishing | [`app/agent.py`](app/agent.py)<br/>[`app/guardrails/safety_plugin.py`](app/guardrails/safety_plugin.py)<br/>[`app/guardrails/hitl.py`](app/guardrails/hitl.py) |
+| **4. Observability & Tracing** | • Structured JSON logging emitting standard event schemas, tool latency, and outcomes<br/>• Distributed tracing via **OpenTelemetry** with **Google Cloud Trace** exporter<br/>• Active regex-based PII & API credential scrubber | [`app/observability/logger.py`](app/observability/logger.py)<br/>[`app/observability/tracing.py`](app/observability/tracing.py)<br/>[`app/observability/redaction.py`](app/observability/redaction.py) |
+| **5. Infrastructure & CI/CD** | • Automated test harness with **Golden Dataset** regression suite<br/>• Complete **Terraform** IaC provisioning GCP resources (`l200-agent-project`)<br/>• **Google Cloud Secret Manager** dynamic secret injection (zero hardcoding) | [`evals/eval_harness.py`](evals/eval_harness.py)<br/>[`infra/terraform/`](infra/terraform/)<br/>[`app/config.py`](app/config.py) |
 
 ---
 
@@ -174,7 +174,7 @@ uv run python evals/eval_harness.py
 **Benchmark Evaluation Output:**
 ```
 ================================================================================
-  AI IN 5 DAYS ASSESSMENT: FINANCIAL RESEARCH AGENT EVALUATION HARNESS
+  FINANCIAL RESEARCH AGENT BENCHMARK EVALUATION HARNESS
 ================================================================================
 
 -> Evaluating [eval_googl_q2_2024] for Alphabet Inc. (GOOGL)...
