@@ -106,3 +106,16 @@ def test_fetch_company_earnings_news():
     assert res["status"] == "SUCCESS"
     assert "articles" in res
     assert len(res["articles"]) >= 1
+
+
+def test_retrieve_sec_filings_cache():
+    """Verify local cache miss and hit for SEC filings."""
+    # First call populates cache
+    res1 = retrieve_sec_filings_data(symbol="TSLA", filing_type="10-Q", fiscal_year=2026, fiscal_quarter=1)
+    assert res1["status"] == "SUCCESS"
+    
+    # Second call returns from LOCAL_DISK_CACHE
+    res2 = retrieve_sec_filings_data(symbol="TSLA", filing_type="10-Q", fiscal_year=2026, fiscal_quarter=1)
+    assert res2["status"] == "SUCCESS"
+    assert res2.get("data_source") == "LOCAL_DISK_CACHE"
+

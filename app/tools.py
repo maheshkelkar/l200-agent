@@ -19,6 +19,8 @@ equipped with comprehensive docstrings, Pydantic v2 schemas for inputs/outputs,
 and actionable recovery feedback for the LLM upon failures.
 """
 
+import json
+from pathlib import Path
 from enum import Enum
 from typing import Any, Optional
 import structlog
@@ -349,7 +351,20 @@ def retrieve_sec_filings_data(
             # Covers benchmark golden dataset companies (Alphabet GOOGL, Apple AAPL, Microsoft MSFT, Nvidia NVDA)
             filing_key = f"{clean_symbol}_{f_type.value}_FY{fiscal_year}" + (f"_Q{fiscal_quarter}" if fiscal_quarter else "")
             
-            # Ground-truth repository
+            # Local SEC Disk Cache Check
+            cache_dir = Path("data/sec_cache")
+            cache_dir.mkdir(parents=True, exist_ok=True)
+            cache_file = cache_dir / f"{filing_key}.json"
+
+            if cache_file.exists():
+                try:
+                    with open(cache_file, "r") as f:
+                        cached_result = json.load(f)
+                        cached_result["data_source"] = "LOCAL_DISK_CACHE"
+                        logger.log_tool_completion("session", "retrieve_sec_filings_data", start_time, cached_result, status="SUCCESS")
+                        return cached_result
+                except Exception:
+                    pass
             SEC_DATABASE = {
                 "GOOGL_10-Q_FY2024_Q2": {
                     "company_name": "Alphabet Inc.",
@@ -435,6 +450,11 @@ def retrieve_sec_filings_data(
                     "filing": f"{f_type.value} FY{fiscal_year}" + (f" Q{fiscal_quarter}" if fiscal_quarter else ""),
                     **data,
                 }
+                try:
+                    with open(cache_file, "w") as f:
+                        json.dump(result, f, indent=2)
+                except Exception:
+                    pass
                 logger.log_tool_completion("session", "retrieve_sec_filings_data", start_time, result, status="SUCCESS")
                 return result
 
@@ -477,6 +497,11 @@ def retrieve_sec_filings_data(
                     "net_income_usd": net_inc,
                     "notes": f"Extracted via automated financial statement parsing for filing ending {most_recent_date}.",
                 }
+                try:
+                    with open(cache_file, "w") as f:
+                        json.dump(result, f, indent=2)
+                except Exception:
+                    pass
                 logger.log_tool_completion("session", "retrieve_sec_filings_data", start_time, result, status="SUCCESS")
                 return result
 
