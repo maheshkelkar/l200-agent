@@ -18,11 +18,11 @@ RUN pip install --no-cache-dir uv==0.8.13
 
 WORKDIR /code
 
-COPY ./pyproject.toml ./README.md ./uv.lock* ./
+COPY ./pyproject.toml ./README.md ./
 
 COPY ./app ./app
 
-RUN uv sync --frozen --no-dev
+RUN UV_DEFAULT_INDEX=https://pypi.org/simple uv sync --no-dev
 
 ARG AGENT_VERSION=0.0.0
 ENV AGENT_VERSION=${AGENT_VERSION}
