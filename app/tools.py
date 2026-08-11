@@ -310,7 +310,7 @@ def retrieve_sec_filings_data(
     Args:
         symbol: The ticker symbol of the company (e.g. 'GOOGL', 'AAPL', 'MSFT', 'NVDA').
         filing_type: The filing format to retrieve: '10-Q' (quarterly) or '10-K' (annual).
-        fiscal_year: Fiscal year between 2020 and 2025 (e.g. 2024).
+        fiscal_year: Fiscal year between 2020 and 2030 (e.g. 2024, 2025, 2026).
         fiscal_quarter: Fiscal quarter (1, 2, 3, or 4). Required when filing_type is '10-Q'.
 
     Returns:
