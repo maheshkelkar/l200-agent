@@ -443,10 +443,29 @@ def retrieve_sec_filings_data(
             quarterly_fin = ticker.quarterly_financials
             if quarterly_fin is not None and not quarterly_fin.empty:
                 cols = list(quarterly_fin.columns)
-                most_recent_date = str(cols[0].date()) if cols else f"{fiscal_year}-Q{fiscal_quarter or 1}"
-                total_rev = float(quarterly_fin.loc["Total Revenue"].iloc[0]) if "Total Revenue" in quarterly_fin.index else None
-                op_inc = float(quarterly_fin.loc["Operating Income"].iloc[0]) if "Operating Income" in quarterly_fin.index else None
-                net_inc = float(quarterly_fin.loc["Net Income"].iloc[0]) if "Net Income" in quarterly_fin.index else None
+                col_idx = 0  # Default to most recent
+                
+                # Match requested fiscal_year and fiscal_quarter
+                for i, col in enumerate(cols):
+                    col_date = col.date()
+                    if col_date.year == fiscal_year:
+                        # Quarter 1: Month 1-3, Quarter 2: Month 4-6, Quarter 3: Month 7-9, Quarter 4: Month 10-12
+                        if fiscal_quarter:
+                            q_month_end = {1: 3, 2: 6, 3: 9, 4: 12}
+                            target_month = q_month_end.get(fiscal_quarter)
+                            if col_date.month == target_month or abs(col_date.month - target_month) <= 1:
+                                col_idx = i
+                                break
+                        else:
+                            col_idx = i
+                            break
+
+                selected_col = cols[col_idx]
+                most_recent_date = str(selected_col.date())
+                
+                total_rev = float(quarterly_fin.loc["Total Revenue"].iloc[col_idx]) if "Total Revenue" in quarterly_fin.index else None
+                op_inc = float(quarterly_fin.loc["Operating Income"].iloc[col_idx]) if "Operating Income" in quarterly_fin.index else None
+                net_inc = float(quarterly_fin.loc["Net Income"].iloc[col_idx]) if "Net Income" in quarterly_fin.index else None
 
                 result = {
                     "status": "SUCCESS",
@@ -456,7 +475,7 @@ def retrieve_sec_filings_data(
                     "total_revenue_usd": total_rev,
                     "operating_income_usd": op_inc,
                     "net_income_usd": net_inc,
-                    "notes": "Extracted via automated financial statement parsing.",
+                    "notes": f"Extracted via automated financial statement parsing for filing ending {most_recent_date}.",
                 }
                 logger.log_tool_completion("session", "retrieve_sec_filings_data", start_time, result, status="SUCCESS")
                 return result
