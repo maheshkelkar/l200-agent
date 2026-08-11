@@ -36,7 +36,11 @@ class Settings(BaseModel):
         default_factory=lambda: os.getenv("GOOGLE_CLOUD_PROJECT_NUMBER", "120662768527")
     )
     location: str = Field(
-        default_factory=lambda: os.getenv("GOOGLE_CLOUD_LOCATION", "us-east1")
+        default_factory=lambda: (
+            "global"
+            if (not os.getenv("GOOGLE_CLOUD_LOCATION") or "." in os.getenv("GOOGLE_CLOUD_LOCATION", "") or "@" in os.getenv("GOOGLE_CLOUD_LOCATION", ""))
+            else os.getenv("GOOGLE_CLOUD_LOCATION", "global")
+        )
     )
 
     # Vertex AI & Model Settings

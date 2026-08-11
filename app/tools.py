@@ -20,6 +20,7 @@ and actionable recovery feedback for the LLM upon failures.
 """
 
 import json
+import math
 from pathlib import Path
 from enum import Enum
 from typing import Any, Optional
@@ -32,6 +33,32 @@ from app.observability.logger import AgentExecutionLogger
 from app.observability.tracing import trace_span
 
 logger = AgentExecutionLogger(agent_name="financial_tools")
+
+
+def _sanitize_json_value(val: Any) -> Any:
+    """Recursively convert float NaN/Infinity into None for strict Vertex AI JSON compliance."""
+    if isinstance(val, float):
+        if math.isnan(val) or math.isinf(val):
+            return None
+        return val
+    elif isinstance(val, dict):
+        return {k: _sanitize_json_value(v) for k, v in val.items()}
+    elif isinstance(val, list):
+        return [_sanitize_json_value(v) for v in val]
+    return val
+
+
+def _safe_float(val: Any) -> Optional[float]:
+    """Safely cast numeric value to float, converting None/NaN/Inf to None."""
+    if val is None:
+        return None
+    try:
+        f = float(val)
+        if math.isnan(f) or math.isinf(f):
+            return None
+        return f
+    except (ValueError, TypeError):
+        return None
 
 
 # ============================================================================
@@ -182,8 +209,9 @@ def fetch_stock_quote_metrics(symbol: str, period: str = "1y") -> dict[str, Any]
                 "summary": info.get("longBusinessSummary", "")[:400] + "..." if info.get("longBusinessSummary") else "",
             }
 
-            logger.log_tool_completion("session", "fetch_stock_quote_metrics", start_time, result, status="SUCCESS")
-            return result
+            sanitized_result = _sanitize_json_value(result)
+            logger.log_tool_completion("session", "fetch_stock_quote_metrics", start_time, sanitized_result, status="SUCCESS")
+            return sanitized_result
 
         except Exception as e:
             err_msg = str(e)
@@ -280,8 +308,9 @@ def calculate_valuation_multiples(
                 "valuation_assessment": assessment,
                 "notes": "Negative earnings or negative EBITDA yield null ratios per GAAP valuation standard.",
             }
-            logger.log_tool_completion("session", "calculate_valuation_multiples", start_time, result, status="SUCCESS")
-            return result
+            sanitized_result = _sanitize_json_value(result)
+            logger.log_tool_completion("session", "calculate_valuation_multiples", start_time, sanitized_result, status="SUCCESS")
+            return sanitized_result
 
         except Exception as e:
             err_msg = str(e)
@@ -361,17 +390,89 @@ def retrieve_sec_filings_data(
                     with open(cache_file, "r") as f:
                         cached_result = json.load(f)
                         cached_result["data_source"] = "LOCAL_DISK_CACHE"
-                        logger.log_tool_completion("session", "retrieve_sec_filings_data", start_time, cached_result, status="SUCCESS")
-                        return cached_result
+                        sanitized = _sanitize_json_value(cached_result)
+                        logger.log_tool_completion("session", "retrieve_sec_filings_data", start_time, sanitized, status="SUCCESS")
+                        return sanitized
                 except Exception:
                     pass
             SEC_DATABASE = {
+                "GOOGL_10-K_FY2024": {
+                    "company_name": "Alphabet Inc.",
+                    "filing_date": "2025-02-04",
+                    "total_revenue_usd": 350018000000.0,
+                    "operating_income_usd": 112061000000.0,
+                    "operating_margin": 0.320,
+                    "net_income_usd": 100618000000.0,
+                    "diluted_eps_usd": 8.04,
+                    "cash_and_marketable_securities_usd": 95600000000.0,
+                    "segment_breakdown": {
+                        "Google Search & other": 198000000000.0,
+                        "YouTube ads": 35800000000.0,
+                        "Google Network": 30000000000.0,
+                        "Google Cloud": 43200000000.0,
+                        "Google Subscriptions, platforms, and devices": 41500000000.0,
+                        "Other Bets": 1518000000.0,
+                    },
+                    "mda_highlights": "Alphabet full year 2024 revenue reached $350.0B with Google Cloud generating $43.2B and operating income of $4.8B.",
+                },
+                "MSFT_10-K_FY2024": {
+                    "company_name": "Microsoft Corporation",
+                    "filing_date": "2024-07-30",
+                    "total_revenue_usd": 245122000000.0,
+                    "operating_income_usd": 109433000000.0,
+                    "operating_margin": 0.446,
+                    "net_income_usd": 88136000000.0,
+                    "diluted_eps_usd": 11.80,
+                    "cash_and_marketable_securities_usd": 75500000000.0,
+                    "segment_breakdown": {
+                        "Intelligent Cloud (Azure)": 105362000000.0,
+                        "Productivity and Business Processes": 77710000000.0,
+                        "More Personal Computing": 62050000000.0,
+                    },
+                    "mda_highlights": "Microsoft Cloud annual revenue surpassed $137B (+23% YoY). Intelligent Cloud delivered $105.4B in revenue.",
+                },
+                "AAPL_10-K_FY2024": {
+                    "company_name": "Apple Inc.",
+                    "filing_date": "2024-11-01",
+                    "total_revenue_usd": 391035000000.0,
+                    "operating_income_usd": 123216000000.0,
+                    "operating_margin": 0.315,
+                    "net_income_usd": 93736000000.0,
+                    "diluted_eps_usd": 6.08,
+                    "segment_breakdown": {
+                        "iPhone": 201183000000.0,
+                        "Services": 96169000000.0,
+                        "Wearables, Home & Accessories": 37005000000.0,
+                        "Mac": 29984000000.0,
+                        "iPad": 26694000000.0,
+                    },
+                    "mda_highlights": "Apple Services reached all-time high revenue of $96.2B.",
+                },
+                "GOOGL_10-Q_FY2024_Q1": {
+                    "company_name": "Alphabet Inc.",
+                    "filing_date": "2024-04-25",
+                    "total_revenue_usd": 80539000000.0,
+                    "operating_income_usd": 25472000000.0,
+                    "operating_margin": 0.316,
+                    "net_income_usd": 23662000000.0,
+                    "diluted_eps_usd": 1.89,
+                    "cash_and_marketable_securities_usd": 108088000000.0,
+                    "segment_breakdown": {
+                        "Google Search & other": 46156000000.0,
+                        "YouTube ads": 8090000000.0,
+                        "Google Network": 7413000000.0,
+                        "Google Cloud": 9574000000.0,
+                        "Google Subscriptions, platforms, and devices": 8739000000.0,
+                        "Other Bets": 495000000.0,
+                    },
+                    "mda_highlights": "Google Cloud delivered $9.57B in revenue (+28% YoY) with operating income of $900M.",
+                },
                 "GOOGL_10-Q_FY2024_Q2": {
                     "company_name": "Alphabet Inc.",
                     "filing_date": "2024-07-24",
                     "total_revenue_usd": 84742000000.0,
                     "operating_income_usd": 27425000000.0,
-                    "operating_margin": 0.32,
+                    "operating_margin": 0.324,
                     "net_income_usd": 23619000000.0,
                     "diluted_eps_usd": 1.89,
                     "cash_and_marketable_securities_usd": 100705000000.0,
@@ -385,6 +486,25 @@ def retrieve_sec_filings_data(
                         "Other Bets": 365000000.0,
                     },
                     "mda_highlights": "Cloud revenue surpassed $10B for the first time with operating profit of $1.17B. Continued CapEx investments in AI infrastructure ($13.2B for Q2).",
+                },
+                "GOOGL_10-Q_FY2024_Q3": {
+                    "company_name": "Alphabet Inc.",
+                    "filing_date": "2024-10-29",
+                    "total_revenue_usd": 88268000000.0,
+                    "operating_income_usd": 28521000000.0,
+                    "operating_margin": 0.323,
+                    "net_income_usd": 26301000000.0,
+                    "diluted_eps_usd": 2.12,
+                    "cash_and_marketable_securities_usd": 93226000000.0,
+                    "segment_breakdown": {
+                        "Google Search & other": 49385000000.0,
+                        "YouTube ads": 8921000000.0,
+                        "Google Network": 7548000000.0,
+                        "Google Cloud": 11353000000.0,
+                        "Google Subscriptions, platforms, and devices": 10656000000.0,
+                        "Other Bets": 388000000.0,
+                    },
+                    "mda_highlights": "Google Cloud accelerated to $11.35B in revenue (+35% YoY) with operating profit of $1.95B.",
                 },
                 "AAPL_10-Q_FY2024_Q3": {
                     "company_name": "Apple Inc.",
@@ -405,12 +525,57 @@ def retrieve_sec_filings_data(
                     },
                     "mda_highlights": "Services reached all-time revenue record of $24.2B (+14% YoY). Gross margin expanded to 46.3%.",
                 },
+                "MSFT_10-Q_FY2024_Q1": {
+                    "company_name": "Microsoft Corporation",
+                    "filing_date": "2023-10-24",
+                    "total_revenue_usd": 56517000000.0,
+                    "operating_income_usd": 26895000000.0,
+                    "operating_margin": 0.476,
+                    "net_income_usd": 22291000000.0,
+                    "diluted_eps_usd": 2.99,
+                    "segment_breakdown": {
+                        "Intelligent Cloud (Azure)": 24259000000.0,
+                        "Productivity and Business Processes": 18592000000.0,
+                        "More Personal Computing": 13666000000.0,
+                    },
+                    "mda_highlights": "Azure growth was 29% driven by demand for AI infrastructure and cloud workloads.",
+                },
+                "MSFT_10-Q_FY2024_Q2": {
+                    "company_name": "Microsoft Corporation",
+                    "filing_date": "2024-01-30",
+                    "total_revenue_usd": 62020000000.0,
+                    "operating_income_usd": 27032000000.0,
+                    "operating_margin": 0.436,
+                    "net_income_usd": 21870000000.0,
+                    "diluted_eps_usd": 2.93,
+                    "segment_breakdown": {
+                        "Intelligent Cloud (Azure)": 25880000000.0,
+                        "Productivity and Business Processes": 19249000000.0,
+                        "More Personal Computing": 16891000000.0,
+                    },
+                    "mda_highlights": "Microsoft Cloud revenue was $33.7B (+24% YoY). Azure and other cloud services grew 30%.",
+                },
+                "MSFT_10-Q_FY2024_Q3": {
+                    "company_name": "Microsoft Corporation",
+                    "filing_date": "2024-04-25",
+                    "total_revenue_usd": 61858000000.0,
+                    "operating_income_usd": 27581000000.0,
+                    "operating_margin": 0.446,
+                    "net_income_usd": 21939000000.0,
+                    "diluted_eps_usd": 2.94,
+                    "segment_breakdown": {
+                        "Intelligent Cloud (Azure)": 26708000000.0,
+                        "Productivity and Business Processes": 19570000000.0,
+                        "More Personal Computing": 15580000000.0,
+                    },
+                    "mda_highlights": "Azure revenue grew 31% with 7 points of growth from AI services.",
+                },
                 "MSFT_10-Q_FY2024_Q4": {
                     "company_name": "Microsoft Corporation",
                     "filing_date": "2024-07-30",
                     "total_revenue_usd": 64727000000.0,
                     "operating_income_usd": 27925000000.0,
-                    "operating_margin": 0.43,
+                    "operating_margin": 0.431,
                     "net_income_usd": 22036000000.0,
                     "diluted_eps_usd": 2.95,
                     "cash_and_marketable_securities_usd": 75500000000.0,
@@ -450,13 +615,14 @@ def retrieve_sec_filings_data(
                     "filing": f"{f_type.value} FY{fiscal_year}" + (f" Q{fiscal_quarter}" if fiscal_quarter else ""),
                     **data,
                 }
+                sanitized_result = _sanitize_json_value(result)
                 try:
                     with open(cache_file, "w") as f:
-                        json.dump(result, f, indent=2)
+                        json.dump(sanitized_result, f, indent=2)
                 except Exception:
                     pass
-                logger.log_tool_completion("session", "retrieve_sec_filings_data", start_time, result, status="SUCCESS")
-                return result
+                logger.log_tool_completion("session", "retrieve_sec_filings_data", start_time, sanitized_result, status="SUCCESS")
+                return sanitized_result
 
             # Dynamic live extraction via yfinance financial statement sheets if filing key not in pre-indexed dictionary
             ticker = yf.Ticker(clean_symbol)
@@ -483,9 +649,9 @@ def retrieve_sec_filings_data(
                 selected_col = cols[best_match_idx]
                 most_recent_date = str(selected_col.date())
                 
-                total_rev = float(quarterly_fin.loc["Total Revenue"].iloc[best_match_idx]) if "Total Revenue" in quarterly_fin.index else None
-                op_inc = float(quarterly_fin.loc["Operating Income"].iloc[best_match_idx]) if "Operating Income" in quarterly_fin.index else None
-                net_inc = float(quarterly_fin.loc["Net Income"].iloc[best_match_idx]) if "Net Income" in quarterly_fin.index else None
+                total_rev = _safe_float(quarterly_fin.loc["Total Revenue"].iloc[best_match_idx]) if "Total Revenue" in quarterly_fin.index else None
+                op_inc = _safe_float(quarterly_fin.loc["Operating Income"].iloc[best_match_idx]) if "Operating Income" in quarterly_fin.index else None
+                net_inc = _safe_float(quarterly_fin.loc["Net Income"].iloc[best_match_idx]) if "Net Income" in quarterly_fin.index else None
 
                 result = {
                     "status": "SUCCESS",
@@ -497,13 +663,14 @@ def retrieve_sec_filings_data(
                     "net_income_usd": net_inc,
                     "notes": f"Extracted via automated financial statement parsing for filing period ending {most_recent_date}.",
                 }
+                sanitized_result = _sanitize_json_value(result)
                 try:
                     with open(cache_file, "w") as f:
-                        json.dump(result, f, indent=2)
+                        json.dump(sanitized_result, f, indent=2)
                 except Exception:
                     pass
-                logger.log_tool_completion("session", "retrieve_sec_filings_data", start_time, result, status="SUCCESS")
-                return result
+                logger.log_tool_completion("session", "retrieve_sec_filings_data", start_time, sanitized_result, status="SUCCESS")
+                return sanitized_result
 
             # Tier-3 Live Quote Fallback if financial statements are not returned
             quote_fallback = fetch_stock_quote_metrics(clean_symbol)
@@ -623,8 +790,9 @@ def fetch_company_earnings_news(symbol: str, max_articles: int = 3) -> dict[str,
                 "article_count": len(articles),
                 "articles": articles,
             }
-            logger.log_tool_completion("session", "fetch_company_earnings_news", start_time, result, status="SUCCESS")
-            return result
+            sanitized_result = _sanitize_json_value(result)
+            logger.log_tool_completion("session", "fetch_company_earnings_news", start_time, sanitized_result, status="SUCCESS")
+            return sanitized_result
 
         except Exception as e:
             err_msg = str(e)

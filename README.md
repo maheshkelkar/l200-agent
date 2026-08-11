@@ -14,9 +14,11 @@
 
 The **Financial Research & Report Generator** is an institutional-grade multi-agent equity research platform designed to automate the discovery, extraction, valuation modeling, and synthesis of corporate financial filings (SEC Form 10-Q and 10-K) and market intelligence.
 
-Built using the **Google Agent Development Kit (ADK)**, this system demonstrates production design patterns across five core architectural capabilities.
+Built using the **Google Agent Development Kit (ADK)**, this system demonstrates production design patterns across core multi-agent architectural capabilities.
 
-> 📖 **Architecture & Infrastructure Decisions**: For the complete system block diagram, GCP component rationale, and infrastructure decisions, see [System Architecture & Infrastructure Rationale](doc/architecture.md).
+> 📖 **Deep-Dive Architectural & Operational Guides**:
+> - 🏛️ **[System Architecture & Frontend Design](doc/architecture.md)**: System block diagrams, React 19 UI component hierarchy, single-port Cloud Run hosting, and GCP infrastructure decisions.
+> - 🛡️ **[Operational Excellence & Governance Guide](doc/operational_excellence.md)**: OpenTelemetry distributed tracing, structured JSON logging, PII redaction, prompt injection defense, Golden Dataset benchmark evaluation, and Cloud Run production runbooks.
 
 ```mermaid
 flowchart TD
@@ -102,6 +104,15 @@ l200-agent/
 │   │   ├── tracing.py              # OpenTelemetry & Google Cloud Trace
 │   │   └── redaction.py            # PII & Secret redaction filter
 │   └── fast_api_app.py             # Production FastAPI & A2A serving entrypoint
+├── doc/
+│   ├── architecture.md             # System & Frontend Architecture Rationale
+│   └── operational_excellence.md   # Observability, Security, Testing & Runbooks
+├── frontend/                       # Institutional React 19 + Vite + Tailwind UI
+│   ├── src/
+│   │   ├── App.tsx                 # Dynamic SSE stream reader & state orchestrator
+│   │   ├── components/             # Header, MetricCards, ReasoningDrawer, HITLGate
+│   │   └── data/exemplars.ts       # Curated financial prompts & expected tool outputs
+│   └── dist/                       # Pre-compiled static assets embedded in container
 ├── evals/
 │   ├── golden_dataset.json         # Ground-truth verified SEC 10-Q/10-K records
 │   ├── eval_harness.py             # Automated regression evaluation harness
@@ -121,7 +132,7 @@ l200-agent/
 │   └── integration/                # ADK runner & streaming integration tests
 ├── Financial_Research_Agent_Demo.ipynb # Interactive Jupyter Walkthrough
 ├── agents-cli-manifest.yaml        # ADK Agents CLI manifest
-├── Dockerfile                      # Production container build
+├── Dockerfile                      # Production container build (FastAPI + React SPA)
 ├── pyproject.toml                  # uv dependency & build specification
 └── README.md                       # Comprehensive documentation
 ```
@@ -162,7 +173,7 @@ agents-cli playground
 
 ## 🧪 Testing & Automated Evaluation
 
-### 1. Run Complete Pytest Suite (15/15 Passed)
+### 1. Run Complete Pytest Suite (17/17 Passed)
 ```bash
 uv run pytest tests/ -v
 ```
@@ -228,27 +239,24 @@ terraform apply -var="project_id=l200-agent-project"
 
 ---
 
-## 🔒 Security, Guardrails & Human-in-the-Loop
+## 🔒 Security, Guardrails & Operational Governance
 
 - **Prompt Injection Defense**: `FinancialSafetyGuardrail.validate_input()` actively blocks override attempts, system instructions exfiltration, and jailbreaks.
 - **Compliance Enforcement**: Enforces mandatory SEC disclaimers on all synthesized reports.
 - **Human-in-the-Loop Gate**: `HITLApprovalGate` pauses execution when high-stakes actions (such as publishing investment ratings) are generated, awaiting explicit human reviewer sign-off.
 - **PII / Secret Redactor**: `RedactingJSONProcessor` sanitizes API keys, auth tokens, SSNs, credit cards, and emails from all stdout logs and trace spans.
 
+> 📖 **Full Operations & Security Reference**: For complete specifications on OpenTelemetry tracing, structured log event schemas, PII redaction rules, Golden Dataset scoring logic, and Cloud Run production runbooks, see [Operational Excellence & Governance Guide](doc/operational_excellence.md).
+
 ---
 
-## 🔮 Known Limitations & Future Improvements
+## 🔮 Known Limitations & Future Enhancements
 
-### 1. On-Demand SEC Filing Footnote & Segment Breakdown Retrieval
-- **Current Behavior**:
-  - **Consolidated Statements (On-Demand)**: Primary financial statement totals (`Total Revenue`, `Operating Income`, `Net Income`) are retrieved on demand at runtime for any publicly traded ticker via live statement feeds (`yfinance`).
-  - **Footnote Disclosures & Segment Reporting (Pre-Indexed)**: Audited product/divisional segment breakdowns (e.g., *Google Cloud vs. Search*, *iPhone vs. Services*, *Data Center vs. Gaming*) and qualitative MD&A highlights are currently pre-indexed for core benchmark filings (`GOOGL`, `AAPL`, `MSFT`, `NVDA`).
-  - **Anti-Hallucination Fallback**: When an unindexed filing or quarter is queried (e.g., `TSLA Q1 2026` or `NVDA Q1 2026`), the agent provides verified top-line financial totals but strictly adheres to its anti-hallucination constitution by disclosing that specific segment breakdowns were not available in the retrieved primary statement.
-
-- **Planned Improvements**:
-  - **Dynamic SEC EDGAR XBRL Ingestion**: Connect directly to the free [SEC EDGAR Company Facts API](https://data.sec.gov/api/xbrl/companyfacts/) to extract dimensional segment axes (`us-gaap/StatementBusinessSegmentsAxis`) and product breakdowns on demand for any SEC-registered entity.
-  - **Automated Vertex AI Search RAG Pipeline**: Ingest full SEC 10-Q/10-K filing documents into the provisioned Discovery Engine Datastore ([`infra/terraform/vertex_search.tf`](infra/terraform/vertex_search.tf)), enabling Gemini to parse Footnote tables and qualitative MD&A disclosures dynamically.
-  - **Commercial Segment API Integration**: Utilize provisioned Secret Manager credentials ([`infra/terraform/secret_manager.tf`](infra/terraform/secret_manager.tf)) for pre-normalized multi-segment endpoints (e.g., Financial Modeling Prep or Polygon).
+| Area | Current State | Planned Enhancement |
+| :--- | :--- | :--- |
+| **1. Global Load Balancing & WAF** | Server runs directly on Cloud Run (`*.run.app`) without an ingress controller. | Provision a **Global External HTTPS Application Load Balancer** with **Cloud Armor WAF** for Layer 7 DDoS mitigation, IP rate-limiting, custom domain mapping (`research.firm.com`), and multi-region failover. |
+| **2. Enterprise Identity & SSO** | Cloud Run IAM requires OIDC bearer tokens; browser visits receive `403` due to cookie isolation. | Deploy **Identity-Aware Proxy (IAP)** to enable seamless Google Workspace browser single sign-on (`accounts.google.com`) with role-based access control (RBAC) for analyst personas. |
+| **3. Universal SEC XBRL RAG** | Primary statements are fetched on demand; segment footnotes are pre-indexed for benchmark tickers. | Integrate the free **SEC EDGAR XBRL Facts API** and automated document ingestion into the provisioned **Vertex AI Search Datastore** for universal on-demand segment discovery. |
 
 ---
 
