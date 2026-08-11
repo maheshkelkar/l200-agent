@@ -146,13 +146,14 @@ Copy the example environment configuration:
 cp .env.example .env
 ```
 
-### 3. Run Non-Interactive Agent Smoke Test
-Execute a research workflow directly using `agents-cli`:
+### 3. Run Agent Analysis via Formatted CLI Client
+Execute a financial research prompt with clean Markdown formatting using `uv`:
 ```bash
-agents-cli run "Analyze Alphabet (GOOGL) Q2 2024 financial performance and segment metrics."
+uv run python client.py "Analyze Alphabet (GOOGL) Q2 2024 financial performance and segment metrics."
 ```
 
-### 4. Start Local Interactive Web Playground
+### 4. Interactive Developer Playground
+For interactive developer testing with visual trace cards and step inspection:
 ```bash
 agents-cli playground
 ```
