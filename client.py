@@ -7,6 +7,8 @@ Formats responses with clean Markdown formatting without exposing raw JSON/logs.
 import os
 import json
 import sys
+import time
+import uuid
 import argparse
 import urllib.request
 import urllib.error
@@ -23,8 +25,11 @@ def get_auth_token():
     except Exception:
         return None
 
-def run_agent_query(service_url: str, prompt: str, session_id: str = "default_session"):
+def run_agent_query(service_url: str, prompt: str, session_id: str = None):
     """Creates session and streams executive response from Cloud Run agent."""
+    if not session_id:
+        session_id = f"session_{int(time.time())}_{uuid.uuid4().hex[:6]}"
+
     token = get_auth_token()
     headers = {"Content-Type": "application/json"}
     if token:
@@ -63,7 +68,8 @@ def run_agent_query(service_url: str, prompt: str, session_id: str = "default_se
         method="POST"
     )
 
-    print(f"\n📊 [Financial Research Agent] Requesting analysis for: '{prompt}'\n" + "="*70 + "\n")
+    print(f"\n📊 [Financial Research Agent | Session: {session_id}]")
+    print(f"   Request: '{prompt}'\n" + "="*70 + "\n")
 
     full_response = []
     try:
@@ -90,6 +96,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Query the Deployed Financial Agent")
     parser.add_argument("prompt", nargs="?", default="What is Alphabet (GOOGL) Q2 2024 revenue?", help="Prompt for agent")
     parser.add_argument("--url", default="https://financial-agent-120662768527.us-east1.run.app", help="Cloud Run Service URL")
+    parser.add_argument("--session", default=None, help="Custom Session ID for multi-turn thread continuation")
+    parser.add_argument("--continue-session", action="store_true", help="Continue using the default persistent session")
     args = parser.parse_args()
 
-    run_agent_query(args.url, args.prompt)
+    session_id = args.session
+    if args.continue_session and not session_id:
+        session_id = "default_session"
+
+    run_agent_query(args.url, args.prompt, session_id=session_id)
