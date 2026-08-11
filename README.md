@@ -16,6 +16,8 @@ The **Financial Research & Report Generator** is an institutional-grade multi-ag
 
 Built using the **Google Agent Development Kit (ADK)**, this system demonstrates production design patterns across five core architectural capabilities.
 
+> 📖 **Architecture & Infrastructure Decisions**: For the complete system block diagram, GCP component rationale, and infrastructure decisions, see [System Architecture & Infrastructure Rationale](doc/architecture.md).
+
 ```mermaid
 flowchart TD
     subgraph Client & Ingestion Layer
