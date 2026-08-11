@@ -237,6 +237,21 @@ terraform apply -var="project_id=l200-agent-project"
 
 ---
 
+## 🔮 Known Limitations & Future Improvements
+
+### 1. On-Demand SEC Filing Footnote & Segment Breakdown Retrieval
+- **Current Behavior**:
+  - **Consolidated Statements (On-Demand)**: Primary financial statement totals (`Total Revenue`, `Operating Income`, `Net Income`) are retrieved on demand at runtime for any publicly traded ticker via live statement feeds (`yfinance`).
+  - **Footnote Disclosures & Segment Reporting (Pre-Indexed)**: Audited product/divisional segment breakdowns (e.g., *Google Cloud vs. Search*, *iPhone vs. Services*, *Data Center vs. Gaming*) and qualitative MD&A highlights are currently pre-indexed for core benchmark filings (`GOOGL`, `AAPL`, `MSFT`, `NVDA`).
+  - **Anti-Hallucination Fallback**: When an unindexed filing or quarter is queried (e.g., `TSLA Q1 2026` or `NVDA Q1 2026`), the agent provides verified top-line financial totals but strictly adheres to its anti-hallucination constitution by disclosing that specific segment breakdowns were not available in the retrieved primary statement.
+
+- **Planned Improvements**:
+  - **Dynamic SEC EDGAR XBRL Ingestion**: Connect directly to the free [SEC EDGAR Company Facts API](https://data.sec.gov/api/xbrl/companyfacts/) to extract dimensional segment axes (`us-gaap/StatementBusinessSegmentsAxis`) and product breakdowns on demand for any SEC-registered entity.
+  - **Automated Vertex AI Search RAG Pipeline**: Ingest full SEC 10-Q/10-K filing documents into the provisioned Discovery Engine Datastore ([`infra/terraform/vertex_search.tf`](infra/terraform/vertex_search.tf)), enabling Gemini to parse Footnote tables and qualitative MD&A disclosures dynamically.
+  - **Commercial Segment API Integration**: Utilize provisioned Secret Manager credentials ([`infra/terraform/secret_manager.tf`](infra/terraform/secret_manager.tf)) for pre-normalized multi-segment endpoints (e.g., Financial Modeling Prep or Polygon).
+
+---
+
 ## 📜 License & Compliance
 
 Licensed under the [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0).
