@@ -211,3 +211,6 @@ credentials*.json
 # Data cache
 data/
 
+# Local demo scripts
+doc/demo_script.md
+

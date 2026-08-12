@@ -25,15 +25,29 @@ from google.cloud import secretmanager
 from pydantic import BaseModel, Field
 
 
+def _resolve_project_id() -> str:
+    proj = os.getenv("GOOGLE_CLOUD_PROJECT") or os.getenv("GCP_PROJECT")
+    if proj:
+        return proj
+    try:
+        import google.auth
+        _, cred_proj = google.auth.default()
+        if cred_proj:
+            return cred_proj
+    except Exception:
+        pass
+    return "your-project-id"
+
+
 class Settings(BaseModel):
     """Application configuration settings."""
 
     # GCP Project Information
     project_id: str = Field(
-        default_factory=lambda: os.getenv("GOOGLE_CLOUD_PROJECT", "l200-agent-project")
+        default_factory=_resolve_project_id
     )
     project_number: str = Field(
-        default_factory=lambda: os.getenv("GOOGLE_CLOUD_PROJECT_NUMBER", "120662768527")
+        default_factory=lambda: os.getenv("GOOGLE_CLOUD_PROJECT_NUMBER", "")
     )
     location: str = Field(
         default_factory=lambda: (

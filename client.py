@@ -95,7 +95,7 @@ def run_agent_query(service_url: str, prompt: str, session_id: str = None):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Query the Deployed Financial Agent")
     parser.add_argument("prompt", nargs="?", default="What is Alphabet (GOOGL) Q2 2024 revenue?", help="Prompt for agent")
-    parser.add_argument("--url", default="https://financial-agent-120662768527.us-east1.run.app", help="Cloud Run Service URL")
+    parser.add_argument("--url", default=os.getenv("CLOUD_RUN_URL", "http://localhost:8080"), help="Cloud Run Service or local Gateway URL (defaults to CLOUD_RUN_URL env or http://localhost:8080)")
     parser.add_argument("--session", default=None, help="Custom Session ID for multi-turn thread continuation")
     parser.add_argument("--continue-session", action="store_true", help="Continue using the default persistent session")
     args = parser.parse_args()

@@ -1,4 +1,6 @@
+import os
 import subprocess
+import urllib.parse
 import httpx
 from fastapi import FastAPI, Request
 from fastapi.responses import StreamingResponse
@@ -15,8 +17,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-CLOUD_RUN_URL = "https://financial-agent-120662768527.us-east1.run.app"
-CLOUD_RUN_HOST = "financial-agent-120662768527.us-east1.run.app"
+def get_cloud_run_url() -> str:
+    url = os.getenv("CLOUD_RUN_URL")
+    if not url:
+        try:
+            url = subprocess.check_output(
+                ["gcloud", "run", "services", "describe", "financial-agent", "--region", "us-east1", "--format", "value(status.url)"],
+                stderr=subprocess.DEVNULL
+            ).decode().strip()
+        except Exception:
+            pass
+    return url or "http://localhost:8080"
+
+CLOUD_RUN_URL = get_cloud_run_url()
+CLOUD_RUN_HOST = urllib.parse.urlparse(CLOUD_RUN_URL).netloc
 
 def get_auth_token() -> str:
     try:

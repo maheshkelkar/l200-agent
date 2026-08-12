@@ -67,7 +67,7 @@ def setup_tracing(
 
     provider = TracerProvider(resource=resource)
 
-    if export_to_cloud and settings.enable_cloud_trace:
+    if export_to_cloud and settings.enable_cloud_trace and proj_id and proj_id not in ["your-project-id", "dummy", "test"]:
         try:
             cloud_exporter = CloudTraceSpanExporter(project_id=proj_id)
             provider.add_span_processor(BatchSpanProcessor(cloud_exporter))

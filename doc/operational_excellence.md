@@ -102,7 +102,7 @@ Deploy containerized revisions using `gcloud` or `agents-cli`:
 gcloud run deploy financial-agent \
   --source . \
   --region us-east1 \
-  --project l200-agent-project \
+  --project $PROJECT_ID \
   --allow-unauthenticated \
   --set-env-vars GOOGLE_CLOUD_LOCATION=global,ALLOW_ORIGINS=*
 ```
@@ -111,13 +111,13 @@ gcloud run deploy financial-agent \
 Cloud Run maintains immutable revision histories. To rollback immediately to a previous healthy revision:
 ```bash
 # 1. List active revisions
-gcloud run revisions list --service=financial-agent --region=us-east1 --project=l200-agent-project
+gcloud run revisions list --service=financial-agent --region=us-east1 --project=$PROJECT_ID
 
 # 2. Shift 100% of traffic to previous revision
 gcloud run services update-traffic financial-agent \
-  --to-revisions=financial-agent-00003-5dz=100 \
+  --to-revisions=PREVIOUS_REVISION_NAME=100 \
   --region=us-east1 \
-  --project=l200-agent-project
+  --project=$PROJECT_ID
 ```
 
 ### Local Authenticated Access Bridge
@@ -127,14 +127,14 @@ When accessing Cloud Run services protected by Domain-Restricted Sharing:
 uv run python cloud_run_proxy.py
 
 # Option B: Official gcloud proxy (127.0.0.1:8080 on local machine)
-gcloud run services proxy financial-agent --region=us-east1 --project=l200-agent-project --port=8080
+gcloud run services proxy financial-agent --region=us-east1 --project=$PROJECT_ID --port=8080
 ```
 
 ### Monitoring & Log Queries
 Search for application events and tool failures in Google Cloud Logging:
 ```bash
 gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name="financial-agent"' \
-  --project=l200-agent-project \
+  --project=$PROJECT_ID \
   --limit=50 \
   --format="table(timestamp,severity,jsonPayload.event,jsonPayload.tool_name,textPayload)"
 ```

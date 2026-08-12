@@ -15,13 +15,12 @@
 variable "project_id" {
   description = "The Google Cloud Project ID"
   type        = string
-  default     = "l200-agent-project"
 }
 
 variable "project_number" {
   description = "The Google Cloud Project Number"
   type        = string
-  default     = "120662768527"
+  default     = ""
 }
 
 variable "region" {
